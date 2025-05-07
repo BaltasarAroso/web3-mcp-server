@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
-    "start": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/index.ts",
+    "start": "NODE_NO_WARNINGS=1 node build/index.js",
+    "dev": "NODE_NO_WARNINGS=1 node --loader ts-node/esm --watch src/index.ts",
     "build": "tsc && chmod 755 build/index.js",
     "cli:client": "npx @wong2/mcp-cli npm run start",
     "local": "npx hardhat node",

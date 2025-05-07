@@ -232,6 +232,22 @@ async function getContractReadMethod(contractAddress: string, abi: any, method: 
     }
 }
 
+async function getContractWriteMethod(contractAddress: string, abi: any, method: string, args: any[]): Promise<string> {
+    try {
+        if (!walletClient) throw new Error("Wallet client not configured. Set PRIVATE_KEY in your .env file.");
+        const result = await walletClient?.writeContract({
+            address: contractAddress as `0x${string}`,
+            abi: abi,
+            functionName: method,
+            args: args,
+        });
+        return `Result: ${JSON.stringify(result, replacer, 2)}`;
+    } catch (error: any) {
+        throw new Error("Error calling contract method: " + error.message);
+    }
+}
+
+
 async function resolveEnsName(ensName: string): Promise<string> {
     try {
         const address = await client.getEnsAddress({ name: normalize(ensName) });
@@ -264,7 +280,7 @@ server.tool('getEthBalance', 'Get the balance of an Ethereum address',
         })
         .describe("The address to get the balance of"),
     },
-    async ({ address }) => {
+    async ({ address }: { address: string }) => {
         try {
             const balance = await getEthBalance(address);
             return {
@@ -288,7 +304,7 @@ server.tool('getTransactionDetails', 'Get details of a transaction by its hash',
     {
         txHash: z.string().describe("The transaction hash to look up"),
     },
-    async ({ txHash }) => {
+    async ({ txHash }: { txHash: string }) => {
         try {
             const retval = await getTransactionDetails(txHash);
             return {
@@ -312,7 +328,7 @@ server.tool('getBlockDetails', 'Get details of a block by its number or hash',
     {
         blockNumberOrHash: z.string().describe("The block number or block hash to look up"),
     },
-    async ({ blockNumberOrHash }) => {
+    async ({ blockNumberOrHash }: { blockNumberOrHash: string }) => {
         try {
             const retval = await getBlockDetails(blockNumberOrHash);
             return {
@@ -391,7 +407,7 @@ server.tool('getTokenBalance', 'Get the ERC-20 token balance of an address',
             message: "Zero address is not allowed"
           }),
     },
-    async ({ address, tokenContract }) => {
+    async ({ address, tokenContract }: { address: string, tokenContract: string }) => {
         try {
             const retval = await getTokenBalance(address, tokenContract);
             return {
@@ -411,7 +427,7 @@ server.tool('getTokenBalance', 'Get the ERC-20 token balance of an address',
     }
 );
 
-server.tool('callContractMethod', 'Call a read-only method on a smart contract',
+server.tool('callReadContractMethod', 'Call a read-only method on a smart contract',
     {
         contractAddress: z.string()
             .describe("The contract address")
@@ -423,10 +439,10 @@ server.tool('callContractMethod', 'Call a read-only method on a smart contract',
         method: z.string().describe("The method name to call"),
         args: z.array(z.string()).describe("Arguments for the method as strings (will be parsed)").optional(),
     },
-    async ({ contractAddress, abi, method, args }) => {
+    async ({ contractAddress, abi, method, args }: any) => {
         try {
             const parsedAbi = JSON.parse(abi);
-            const parsedArgs = args ? args.map(arg => {
+            const parsedArgs = args ? args.map((arg: any) => {
                 try {
                     return JSON.parse(arg);
                 } catch {
@@ -455,7 +471,7 @@ server.tool('resolveEnsName', 'Resolve an ENS name to an Ethereum address',
     {
         ensName: z.string().describe("The ENS name to resolve (e.g. vitalik.eth)"),
     },
-    async ({ ensName }) => {
+    async ({ ensName }: { ensName: string }) => {
         try {
             const retval = await resolveEnsName(ensName);
             return {
@@ -484,7 +500,7 @@ server.tool('lookupEnsName', 'Lookup the ENS name for an Ethereum address',
                 message: "Zero address is not allowed"
             }),
     },
-    async ({ address }) => {
+    async ({ address }: { address: string }) => {
         try {
             const retval = await lookupEnsName(address);
             return {
@@ -534,7 +550,7 @@ server.tool('sendEth', 'Send ETH from the configured wallet to an address',
             })
             .describe('Amount of ETH to send (as a string, in ETH)'),
     },
-    async ({ to, amount }) => {
+    async ({ to, amount }: { to: string, amount: string }) => {
         try {
             const result = await sendEth(to, amount);
             return {
@@ -553,6 +569,48 @@ server.tool('sendEth', 'Send ETH from the configured wallet to an address',
         }
     }
 );
+
+server.tool('callWriteContractMethod', 'Call a write method on a smart contract',
+    {
+        contractAddress: z.string()
+            .describe("The contract address")
+            .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid contract address")
+            .refine(addr => addr !== "0x0000000000000000000000000000000000000000", {
+                message: "Zero address is not allowed"
+            }),
+        abi: z.string().describe("The contract ABI as a JSON string"),
+        method: z.string().describe("The method name to call"),
+        args: z.array(z.string()).describe("Arguments for the method as strings (will be parsed)").optional(),
+    },
+    async ({ contractAddress, abi, method, args }: any) => {
+        try {
+            const parsedAbi = JSON.parse(abi);
+            const parsedArgs = args ? args.map((arg: any) => {
+                try {
+                    return JSON.parse(arg);
+                } catch {
+                    return arg;
+                }
+            }) : [];
+            const retval = await getContractWriteMethod(contractAddress, parsedAbi, method, parsedArgs);
+            return {
+                content: [{
+                    type: "text",
+                    text: retval
+                }]
+            };
+        } catch (error: any) {
+            return {
+                content: [{
+                    type: "text",
+                    text: error.message
+                }]
+            };
+        }
+    }
+);
+
+
 
 // Helper function to get balances for all wallets in listOfWallets
 async function getAllWalletsBalances(): Promise<{ [address: string]: string }> {
@@ -595,7 +653,7 @@ server.tool('getAllWalletsBalances', 'Get the ETH balance of all addresses in th
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("Web3 MCP Server running on stdio");
+    console.error("Web3 MCP Server running on stdio. Network: ", getChainConfig(CHAIN_ENV).name);
 }
 
 main().catch((error) => {
