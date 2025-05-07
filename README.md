@@ -55,7 +55,6 @@ This allows you to list tools, call them, and inspect the server's capabilities 
 
 ## Next Steps
 - [x] Add write (transaction) support for testnet/local
-- [ ] Provide a demonstration script or notebook
+- [x] Ensure comprehensive demonstration via unit and integration (e2e) tests using Vitest (`npm test` runs all tests)
 - [ ] Refactor code into modules for maintainability
-- [ ] Add tests and more documentation
 - [ ] Add basic rate limiting or warning about RPC usage

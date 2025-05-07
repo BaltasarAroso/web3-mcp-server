@@ -14,7 +14,7 @@ const server = new McpServer({
   },
 });
 
-import { createPublicClient, formatEther, http, formatGwei, createWalletClient, parseEther, WalletClient } from 'viem';
+import { createPublicClient, formatEther, http, formatGwei, createWalletClient, parseEther } from 'viem';
 import { mainnet, goerli, sepolia } from 'viem/chains';
 import { normalize } from 'viem/ens';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -35,7 +35,7 @@ const localChain = {
     contracts: undefined,
 };
 
-function getChainConfig(env: string) {
+export function getChainConfig(env: string) {
     switch (env) {
         case 'goerli':
             return goerli;
@@ -66,7 +66,7 @@ const listOfWallets = [
     '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
 ]
 
-let walletClient: WalletClient | undefined = undefined;
+let walletClient: any = undefined;
 if (PRIVATE_KEY) {
     const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
     walletClient = createWalletClient({
