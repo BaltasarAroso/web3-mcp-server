@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getChainConfig } from './index.ts';
+import { getChainConfig } from './index.js';
 
 /*
   Example unit test file for server-side logic.

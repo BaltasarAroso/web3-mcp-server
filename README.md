@@ -53,6 +53,45 @@ npx @wong2/mcp-cli npm start
 
 This allows you to list tools, call them, and inspect the server's capabilities interactively.
 
+## Integrating MCP Server with Claude and Cursor IDE
+
+Both Claude and Cursor IDE allow you to add custom MCP servers via their settings. The process is nearly identical for both tools:
+
+### Steps to Add MCP Server
+
+1. **Build your MCP server:**
+   ```bash
+   npm run build
+   ```
+   This compiles the server to the `server/build` directory.
+
+2. **Open the settings in your tool:**
+   - **Cursor IDE:** Go to `Settings` > `MCP`.
+   - **Claude (Desktop):** Go to `Settings` > `Developer` > `Edit Config`.
+
+3. **Add a new global MCP server:**
+   - You can do this via the UI or by editing the JSON config file directly.
+   - Example JSON config:
+     ```json
+     {
+       "mcpServers": {
+         "web3-tools": {
+           "command": "node",
+           "args": ["$GITHUB_REPO/server/build/index.js"]
+         }
+       }
+     }
+     ```
+     Replace `$GITHUB_REPO` with the path to your local repository directory.
+
+4. **Save the config and restart/reload the tool if needed.**
+
+5. **To update tools:**
+   - Always run `npm run build` after making changes to your server code.
+   - You may need to manually refresh the tool or restart the MCP server for changes to take effect.
+
+*Note: The UI and config file locations may change as these tools evolve. Refer to their documentation for the latest details.*
+
 ## Next Steps
 - [x] Add write (transaction) support for testnet/local
 - [x] Ensure comprehensive demonstration via unit and integration (e2e) tests using Vitest (`npm test` runs all tests)

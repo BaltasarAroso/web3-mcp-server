@@ -5,20 +5,30 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Create server instance
-const server = new McpServer({
-  name: "web3-tools",
-  version: "1.0.0",
-  capabilities: {
-    tools: {},
-  },
-});
+/* -------------------------------------------------------------------------- */
+/*                              Import viem tools                             */
+/* -------------------------------------------------------------------------- */
 
 import { createPublicClient, formatEther, http, formatGwei, createWalletClient, parseEther } from 'viem';
 import { mainnet, goerli, sepolia } from 'viem/chains';
 import { normalize } from 'viem/ens';
 import { privateKeyToAccount } from 'viem/accounts';
 
+/* -------------------------------------------------------------------------- */
+/*                              Create server instance                       */
+/* -------------------------------------------------------------------------- */
+const server = new McpServer({
+    name: "web3-tools",
+    version: "1.0.0",
+    description: "A set of web3 tools for interacting with Ethereum and EVM-compatible chains.",
+    capabilities: {
+        tools: {},
+    },
+});
+
+/* -------------------------------------------------------------------------- */
+/*                              Define chain config                           */
+/* -------------------------------------------------------------------------- */
 // Select chain based on CHAIN_ENV
 const CHAIN_ENV = process.env.CHAIN_ENV || 'mainnet';
 
