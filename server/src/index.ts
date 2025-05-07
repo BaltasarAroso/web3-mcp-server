@@ -14,15 +14,16 @@ const server = new McpServer({
   },
 });
 
-import { createPublicClient, formatEther, http, formatGwei } from 'viem';
+import { createPublicClient, formatEther, http, formatGwei, createWalletClient, parseEther, WalletClient } from 'viem';
 import { mainnet, goerli, sepolia } from 'viem/chains';
 import { normalize } from 'viem/ens';
+import { privateKeyToAccount } from 'viem/accounts';
 
 // Select chain based on CHAIN_ENV
 const CHAIN_ENV = process.env.CHAIN_ENV || 'mainnet';
 
 const localChain = {
-    id: 1337,
+    id: 31337,
     name: 'Localhost',
     network: 'localhost',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
@@ -53,6 +54,27 @@ const client = createPublicClient({
     chain: getChainConfig(CHAIN_ENV),
     transport: http()
 });
+
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
+// List of wallets to use for testing (from hardhat)
+const listOfWallets = [
+    '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+    '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+    '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+    '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+]
+
+let walletClient: WalletClient | undefined = undefined;
+if (PRIVATE_KEY) {
+    const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`);
+    walletClient = createWalletClient({
+        chain: getChainConfig(CHAIN_ENV),
+        transport: http(),
+        account,
+    });
+}
 
 // Converts BigInt values to strings for safe JSON serialization
 function replacer(key: string, value: any) {
@@ -472,6 +494,94 @@ server.tool('lookupEnsName', 'Lookup the ENS name for an Ethereum address',
     }
 );
 
+/* ----------------------------- Write Functions ---------------------------- */
+async function sendEth(to: string, amount: string): Promise<string> {
+    if (!walletClient || !walletClient.account) throw new Error('Wallet client not configured. Set PRIVATE_KEY in your .env file.');
+    try {
+        const hash = await walletClient.sendTransaction({
+            chain: getChainConfig(CHAIN_ENV),
+            to: to as `0x${string}`,
+            value: parseEther(amount),
+            account: walletClient.account,
+        });
+        return `Transaction sent! Hash: ${hash}`;
+    } catch (error: any) {
+        throw new Error('Error sending ETH: ' + error.message);
+    }
+}
+
+server.tool('sendEth', 'Send ETH from the configured wallet to an address',
+    {
+        to: z.string()
+            .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address')
+            .refine(addr => addr !== '0x0000000000000000000000000000000000000000', {
+                message: 'Zero address is not allowed'
+            })
+            .describe('Recipient address'),
+        amount: z.string()
+            .refine(val => !isNaN(Number(val)) && Number(val) > 0, {
+                message: 'Amount must be a positive number (in ETH)'
+            })
+            .describe('Amount of ETH to send (as a string, in ETH)'),
+    },
+    async ({ to, amount }) => {
+        try {
+            const result = await sendEth(to, amount);
+            return {
+                content: [{
+                    type: 'text',
+                    text: result
+                }]
+            };
+        } catch (error: any) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: error.message
+                }]
+            };
+        }
+    }
+);
+
+// Helper function to get balances for all wallets in listOfWallets
+async function getAllWalletsBalances(): Promise<{ [address: string]: string }> {
+    const results: { [address: string]: string } = {};
+    for (const address of listOfWallets) {
+        try {
+            results[address] = await getEthBalance(address);
+        } catch (error: any) {
+            results[address] = `Error: ${error.message}`;
+        }
+    }
+    return results;
+}
+
+server.tool('getAllWalletsBalances', 'Get the ETH balance of all addresses in the listOfWallets',
+    {},
+    async () => {
+        try {
+            const balances = await getAllWalletsBalances();
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify(balances, null, 2)
+                }]
+            };
+        } catch (error: any) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: error.message
+                }]
+            };
+        }
+    }
+);
+
+/* -------------------------------------------------------------------------- */
+/*                                Main Function                               */
+/* -------------------------------------------------------------------------- */
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);

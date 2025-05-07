@@ -54,7 +54,7 @@ npx @wong2/mcp-cli npm start
 This allows you to list tools, call them, and inspect the server's capabilities interactively.
 
 ## Next Steps
-- [ ] Add write (transaction) support for testnet/local
+- [x] Add write (transaction) support for testnet/local
 - [ ] Provide a demonstration script or notebook
 - [ ] Refactor code into modules for maintainability
 - [ ] Add tests and more documentation

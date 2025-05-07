@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/index.ts",
-    "build": "tsc && chmod 755 build/index.js"
+    "build": "tsc && chmod 755 build/index.js",
+    "local": "npx hardhat node",
+    "deploy": "npx hardhat run src/deploy.ts",
+    "mcp:local": "npm run local &> /dev/null & npm run start"
   },
   "repository": {
     "type": "git",
@@ -25,8 +28,10 @@
     "viem": "^2.29.0"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/dotenv": "^6.1.1",
     "@types/node": "^22.15.12",
+    "hardhat": "^2.23.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
